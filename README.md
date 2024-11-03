@@ -65,7 +65,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-If you encounter any problems or have any questions, please open an issue on the [GitHub repository](https://github.com/onnasoft/stripe-bun/issues).
+If you encounter any problems or have any questions, please open an issue on the [GitHub repository](https://github.com/juliotorresmoreno/stripe-bun/issues).
 
 ## Acknowledgements
 
