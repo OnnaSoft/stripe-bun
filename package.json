@@ -1,5 +1,5 @@
 {
-  "name": "stripe-bun",
+  "name": "@onnasoft/stripe-bun",
   "version": "1.0.0",
   "description": "A Stripe client implementation for Bun runtime",
   "main": "index.js",
@@ -30,5 +30,8 @@
   },
   "engines": {
     "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
