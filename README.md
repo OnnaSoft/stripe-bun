@@ -11,13 +11,13 @@ stripe-bun is a lightweight and efficient Stripe API client designed specificall
 You can install stripe-bun using npm:
 
 ```
-npm install @onnasoft/stripe-bun
+npm install @onna-soft/stripe-bun
 ```
 
 Or using Bun:
 
 ```
-bun add @onnasoft/stripe-bun
+bun add @onna-soft/stripe-bun
 ```
 
 ## Usage
