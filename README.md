@@ -25,9 +25,14 @@ bun add @onnasoft/stripe-bun
 Here's a basic example of how to use stripe-bun:
 
 ```javascript
-import { Stripe } from '@onnasoft/stripe-bun';
+import Stripe from 'stripe';
+import { CustomHttpClient } from '@onna-soft/stripe-bun';
 
 const stripe = new Stripe('your_stripe_secret_key');
+
+const stripe = new Stripe('your_stripe_secret_key', {
+    httpClient: new CustomHttpClient(),
+});
 
 async function createCustomer() {
   try {
