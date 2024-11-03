@@ -10,10 +10,15 @@
   },
   "author": "Julio Torres <jtorres990@gmail.com>",
   "license": "MIT",
-  "keywords": ["stripe", "bun", "payment", "api"],
+  "keywords": [
+    "stripe",
+    "bun",
+    "payment",
+    "api"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/juliotorresmoreno/stripe-bun.git"
+    "url": "git+https://github.com/juliotorresmoreno/stripe-bun.git"
   },
   "bugs": {
     "url": "https://github.com/juliotorresmoreno/stripe-bun/issues"
