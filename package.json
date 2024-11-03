@@ -1,0 +1,34 @@
+{
+  "name": "stripe-bun",
+  "version": "1.0.0",
+  "description": "A Stripe client implementation for Bun runtime",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "bun build ./src/index.js --outdir ./dist"
+  },
+  "author": "Julio Torres <jtorres990@gmail.com>",
+  "license": "MIT",
+  "keywords": ["stripe", "bun", "payment", "api"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juliotorresmoreno/stripe-bun.git"
+  },
+  "bugs": {
+    "url": "https://github.com/juliotorresmoreno/stripe-bun/issues"
+  },
+  "homepage": "https://github.com/juliotorresmoreno/stripe-bun#readme",
+  "dependencies": {
+    "@types/node": "^22.8.6"
+  },
+  "peerDependencies": {
+    "bun-types": "^1.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
