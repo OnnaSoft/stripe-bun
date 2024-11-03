@@ -28,8 +28,6 @@ Here's a basic example of how to use stripe-bun:
 import Stripe from 'stripe';
 import { CustomHttpClient } from '@onna-soft/stripe-bun';
 
-const stripe = new Stripe('your_stripe_secret_key');
-
 const stripe = new Stripe('your_stripe_secret_key', {
     httpClient: new CustomHttpClient(),
 });
