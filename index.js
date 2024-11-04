@@ -173,9 +173,11 @@ function createResponse(statusCode, headers, responseData) {
             return stream;
         },
         toJSON: () => {
-            return Promise.resolve(JSON.parse(responseData)).catch(() => {
+            try {
+                return Promise.resolve(JSON.parse(responseData));
+            } catch (error) {
                 return Promise.reject(new Error('Failed to parse JSON response'));
-            });
+            }
         },
     };
 }
