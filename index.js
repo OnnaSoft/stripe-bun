@@ -1,12 +1,13 @@
 const net = require('net');
 const tls = require('tls');
+const { Readable } = require('stream');
 
 /**
  * @typedef {Object} HttpClientResponse
  * @property {function(): number} getStatusCode - Get the status code of the response
  * @property {function(): Object.<string, string>} getHeaders - Get the headers of the response
  * @property {function(): string} getRawResponse - Get the raw response as a string
- * @property {function(function(): void): null} toStream - Convert the response to a stream
+ * @property {function(function(): void): Readable} toStream - Convert the response to a stream
  * @property {function(): Promise<any>} toJSON - Parse the response body as JSON
  */
 
@@ -20,7 +21,7 @@ class CustomHttpClient {
      * @constructor
      */
     constructor() {
-        /** @type {string} */
+        /** @private */
         this.requestId = '';
     }
 
@@ -44,16 +45,7 @@ class CustomHttpClient {
      * @param {number} timeout - The timeout for the request in milliseconds
      * @returns {Promise<HttpClientResponse>} A promise that resolves with the response
      */
-    makeRequest(
-        host,
-        port,
-        path,
-        method,
-        headers,
-        requestData,
-        protocol,
-        timeout
-    ) {
+    makeRequest(host, port, path, method, headers, requestData, protocol, timeout) {
         return new Promise((resolve, reject) => {
             const postData = requestData || '';
 
@@ -100,42 +92,50 @@ class CustomHttpClient {
                     sslSocket.write(requestString);
                 }
 
-                let responseData = '';
+                let responseData = Buffer.alloc(0);
+                /** @type {Object.<string, string>} */
+                let headers = {};
+                let statusCode = 0;
+                let isHeadersParsed = false;
+                let contentLength = -1;
+                let chunkedTransfer = false;
 
                 sslSocket.on('data', (chunk) => {
-                    responseData += chunk.toString();
-                    if (responseData.includes('\r\n\r\n')) {
-                        const [headersString, body] = responseData.split('\r\n\r\n');
-                        const [statusLine, ...headerLines] = headersString.split('\r\n');
-                        const statusCode = parseInt(statusLine.split(' ')[1]);
+                    responseData = Buffer.concat([responseData, chunk]);
 
-                        /** @type {Object.<string, string>} */
-                        const headers = {};
-                        for (const line of headerLines) {
-                            const [key, value] = line.split(': ');
-                            headers[key.toLowerCase()] = value;
+                    if (!isHeadersParsed) {
+                        const headerEndIndex = responseData.indexOf('\r\n\r\n');
+                        if (headerEndIndex !== -1) {
+                            const headersString = responseData.slice(0, headerEndIndex).toString();
+                            const [statusLine, ...headerLines] = headersString.split('\r\n');
+                            statusCode = parseInt(statusLine.split(' ')[1]);
+
+                            for (const line of headerLines) {
+                                const [key, value] = line.split(': ');
+                                headers[key.toLowerCase()] = value;
+                            }
+
+                            isHeadersParsed = true;
+                            chunkedTransfer = headers['transfer-encoding'] === 'chunked';
+                            contentLength = parseInt(headers['content-length'] || '-1');
+
+                            responseData = responseData.slice(headerEndIndex + 4);
+
+                            if (!chunkedTransfer && (contentLength === -1 || responseData.length >= contentLength)) {
+                                sslSocket.end();
+                                resolve(createResponse(statusCode, headers, responseData.toString()));
+                            }
                         }
-
-                        resolve({
-                            getStatusCode: () => statusCode,
-                            getHeaders: () => headers,
-                            getRawResponse: () => new String(responseData),
-                            toStream: (streamCompleteCallback) => {
-                                streamCompleteCallback();
-                                return null;
-                            },
-                            toJSON: () => {
-                                return Promise.resolve(JSON.parse(body)).catch(() => {
-                                    return Promise.reject(new Error('Failed to parse JSON response'));
-                                });
-                            },
-                        });
-
+                    } else if (contentLength !== -1 && responseData.length >= contentLength) {
                         sslSocket.end();
+                        resolve(createResponse(statusCode, headers, responseData.toString()));
                     }
                 });
 
                 sslSocket.on('end', () => {
+                    if (!isHeadersParsed || (contentLength === -1 && !chunkedTransfer)) {
+                        resolve(createResponse(statusCode, headers, responseData.toString()));
+                    }
                     socket.end();
                 });
 
@@ -151,6 +151,33 @@ class CustomHttpClient {
             });
         });
     }
+}
+
+/**
+ * Create a response object
+ * @param {number} statusCode - The HTTP status code
+ * @param {Object.<string, string>} headers - The response headers
+ * @param {string} responseData - The response body
+ * @returns {HttpClientResponse} The response object
+ */
+function createResponse(statusCode, headers, responseData) {
+    return {
+        getStatusCode: () => statusCode,
+        getHeaders: () => headers,
+        getRawResponse: () => new String(responseData),
+        toStream: (streamCompleteCallback) => {
+            const stream = new Readable();
+            stream.push(responseData);
+            stream.push(null);
+            stream.on('end', streamCompleteCallback);
+            return stream;
+        },
+        toJSON: () => {
+            return Promise.resolve(JSON.parse(responseData)).catch(() => {
+                return Promise.reject(new Error('Failed to parse JSON response'));
+            });
+        },
+    };
 }
 
 module.exports = { CustomHttpClient };
