@@ -1,6 +1,6 @@
 {
   "name": "@onna-soft/stripe-bun",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A Stripe client implementation for Bun runtime",
   "main": "index.js",
   "types": "index.d.ts",
