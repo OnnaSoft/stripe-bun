@@ -1,11 +1,11 @@
 {
   "name": "@onna-soft/stripe-bun",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A Stripe client implementation for Bun runtime",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "bun build ./src/index.js --outdir ./dist"
   },
   "author": "Julio Torres <jtorres990@gmail.com>",
@@ -31,7 +31,8 @@
     "bun-types": "^1.0.0"
   },
   "devDependencies": {
-    "bun-types": "^1.0.0"
+    "bun-types": "^1.0.0",
+    "jest": "^29.7.0"
   },
   "engines": {
     "bun": ">=1.0.0"
