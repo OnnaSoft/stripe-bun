@@ -3,10 +3,21 @@ const tls = require("tls");
 const { Readable } = require("stream");
 
 /**
+ * @typedef {Object} StripeResponse
+ * @property {boolean} ok - Indicates if the request was successful.
+ * @property {string} url - The URL of the request.
+ * @property {number} status - The HTTP status code of the response.
+ * @property {string} statusText - The status message associated with the status code.
+ * @property {Object.<string, string>} headers - Object containing response headers with string attributes.
+ * @property {boolean} redirected - Indicates if the response was redirected.
+ * @property {boolean} bodyUsed - Indicates if the response body has been used.
+ */
+
+/**
  * @typedef {Object} HttpClientResponse
  * @property {function(): number} getStatusCode - Get the status code of the response
  * @property {function(): Object.<string, string>} getHeaders - Get the headers of the response
- * @property {function(): string} getRawResponse - Get the raw response as a string
+ * @property {function(): StripeResponse} getRawResponse - Get the raw response as a string
  * @property {function(function(): void): Readable} toStream - Convert the response to a stream
  * @property {function(): Promise<any>} toJSON - Parse the response body as JSON
  */
@@ -85,6 +96,8 @@ class CustomHttpClient {
         port: typeof port === "string" ? parseInt(port, 10) : port,
       };
 
+      const url = `${protocol}://${host}:${port}${path}`;
+
       const connectCallback = () => {
         /** @type {net.Socket|tls.TLSSocket} */
         let sslSocket;
@@ -141,7 +154,12 @@ class CustomHttpClient {
               ) {
                 sslSocket.end();
                 resolve(
-                  createResponse(statusCode, headers, responseData.toString())
+                  createResponse(
+                    url,
+                    statusCode,
+                    headers,
+                    responseData.toString()
+                  )
                 );
               }
             }
@@ -151,7 +169,7 @@ class CustomHttpClient {
           ) {
             sslSocket.end();
             resolve(
-              createResponse(statusCode, headers, responseData.toString())
+              createResponse(url, statusCode, headers, responseData.toString())
             );
           }
         });
@@ -159,7 +177,7 @@ class CustomHttpClient {
         sslSocket.on("end", () => {
           if (!isHeadersParsed || (contentLength === -1 && !chunkedTransfer)) {
             resolve(
-              createResponse(statusCode, headers, responseData.toString())
+              createResponse(url, statusCode, headers, responseData.toString())
             );
           }
           socket.end();
@@ -179,18 +197,103 @@ class CustomHttpClient {
   }
 }
 
+const statusCodeToText = {
+  100: "Continue",
+  101: "Switching Protocols",
+  102: "Processing",
+  103: "Early Hints",
+  200: "OK",
+  201: "Created",
+  202: "Accepted",
+  203: "Non-Authoritative Information",
+  204: "No Content",
+  205: "Reset Content",
+  206: "Partial Content",
+  207: "Multi-Status",
+  208: "Already Reported",
+  226: "IM Used",
+  300: "Multiple Choices",
+  301: "Moved Permanently",
+  302: "Found",
+  303: "See Other",
+  304: "Not Modified",
+  305: "Use Proxy",
+  307: "Temporary Redirect",
+  308: "Permanent Redirect",
+  400: "Bad Request",
+  401: "Unauthorized",
+  402: "Payment Required",
+  403: "Forbidden",
+  404: "Not Found",
+  405: "Method Not Allowed",
+  406: "Not Acceptable",
+  407: "Proxy Authentication Required",
+  408: "Request Timeout",
+  409: "Conflict",
+  410: "Gone",
+  411: "Length Required",
+  412: "Precondition Failed",
+  413: "Payload Too Large",
+  414: "URI Too Long",
+  415: "Unsupported Media Type",
+  416: "Range Not Satisfiable",
+  417: "Expectation Failed",
+  418: "I'm a teapot",
+  421: "Misdirected Request",
+  422: "Unprocessable Entity",
+  423: "Locked",
+  424: "Failed Dependency",
+  425: "Too Early",
+  426: "Upgrade Required",
+  428: "Precondition Required",
+  429: "Too Many Requests",
+  431: "Request Header Fields Too Large",
+  451: "Unavailable For Legal Reasons",
+  500: "Internal Server Error",
+  501: "Not Implemented",
+  502: "Bad Gateway",
+  503: "Service Unavailable",
+  504: "Gateway Timeout",
+  505: "HTTP Version Not Supported",
+  506: "Variant Also Negotiates",
+  507: "Insufficient Storage",
+  508: "Loop Detected",
+  510: "Not Extended",
+  511: "Network Authentication Required",
+};
+
+/**
+ * Get the status text for an HTTP status code
+ * @param {number} statusCode - The HTTP status code
+ * @returns
+ */
+function getStatusText(statusCode) {
+  return statusCodeToText[statusCode] || "Unknown Status";
+}
+
 /**
  * Create a response object
+ * @param {string} url - The URL of the request
  * @param {number} statusCode - The HTTP status code
  * @param {Object.<string, string>} headers - The response headers
- * @param {string} responseData - The response body
+ * @param {StripeResponse} responseData - The response body
  * @returns {HttpClientResponse} The response object
  */
-function createResponse(statusCode, headers, responseData) {
+function createResponse(url, statusCode, headers, responseData) {
   return {
     getStatusCode: () => statusCode,
     getHeaders: () => headers,
-    getRawResponse: () => new String(responseData),
+    getRawResponse: () => {
+      return {
+        ok: statusCode >= 200 && statusCode < 300,
+        url: url,
+        status: statusCode,
+        statusText: getStatusText(statusCode),
+        headers: headers,
+        redirected: false,
+        bodyUsed: true,
+      };
+    },
     toStream: (streamCompleteCallback) => {
       const stream = new Readable();
       stream.push(responseData);
